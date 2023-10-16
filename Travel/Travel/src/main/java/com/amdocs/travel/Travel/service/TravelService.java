@@ -15,34 +15,28 @@ public class TravelService {
 
     public List<List<Travels>> getAllPathsBetweenCities(City sourceCity, City destinationCity) {
         List<List<Travels>> allPaths = new ArrayList<>();
-        Queue<List<Travels>> queue = new LinkedList<>();
-        List<Travels> initialPath = new ArrayList<>();
-
-        initialPath.add(new Travels());
-        queue.add(initialPath);
-
-        while (!queue.isEmpty()) {
-            List<Travels> currentPath = queue.poll();
-            //Log.d(currentPath.size());
-            Travels lastTravel = currentPath.get(currentPath.size() - 1);
-            City currentCity = (lastTravel == null) ? sourceCity : lastTravel.getDestinationCity();
-
-            if (currentCity.equals(destinationCity)) {
-                currentPath.remove(0);
-                allPaths.add(currentPath);
-            } else {
-                List<Travels> possibleTravels = travelRepository.findBySourceCity(currentCity);
-                for (Travels travel : possibleTravels) {
-                    if (!currentPath.contains(travel)) {
-                        List<Travels> newPath = new ArrayList<>(currentPath);
-                        newPath.add(travel);
-                        queue.add(newPath);
-                    }
-                }
-            }
-        }
+        dfs(sourceCity, destinationCity, new HashSet<>(), new ArrayList<>(), allPaths);
         return allPaths;
     }
+
+    public void dfs(City curr, City dest, Set<Long> visited, List<Travels> currPath, List<List<Travels>> ans) {
+    	if (curr.getCityId() == dest.getCityId()) {
+    		ans.add(new ArrayList<>(currPath));
+    	}
+    	else {
+    		visited.add(curr.getCityId());
+    		List<Travels> neighbors = travelRepository.findBySourceCity(curr);
+    		for (var neighbor: neighbors) {
+    			if (!visited.contains(neighbor.getDestinationCity().getCityId())) {
+    				currPath.add(neighbor);
+    				dfs(neighbor.getDestinationCity(), dest, visited, currPath, ans);
+    				currPath.remove(currPath.size()-1);
+    			}
+    		}
+    		visited.remove(curr.getCityId());
+    	}
+    }
+    
     public List<Travels> getCheapestPathBetweenCities(City sourceCity, City destinationCity) {
         Map<City, Double> minCostMap = new HashMap<>();
         Map<City, Travels> previousTravelMap = new HashMap<>();
